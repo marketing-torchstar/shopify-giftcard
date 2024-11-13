@@ -3,72 +3,34 @@
 import axios from 'axios';
 
 const shopifyConfig = {
-  accessToken: process.env.SHOPIFY_ACCESS_TOKEN,
+  accessToken: process.env.SHOPIFY_PASSWORD, // 使用访问令牌进行认证
   shopName: process.env.SHOPIFY_SHOP_NAME,
 };
 
 export default async function handler(req, res) {
+  // 设置 CORS 头，允许跨域请求
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
 
   try {
-    const { customer_id } = req.query;
+    const url = `https://${shopifyConfig.shopName}.myshopify.com/admin/api/2023-10/gift_cards.json`;
 
-    if (!customer_id) {
-      return res.status(400).json({ error: 'Missing customer_id parameter' });
-    }
+    // 设置请求头，包含访问令牌
+    const response = await axios.get(url, {
+      headers: {
+        'X-Shopify-Access-Token': shopifyConfig.accessToken,
+        'Content-Type': 'application/json',
+      },
+    });
 
-    const url = `https://${shopifyConfig.shopName}.myshopify.com/admin/api/2023-10/graphql.json`;
-
-    const query = `
-      {
-        giftCards(first: 100) {
-          edges {
-            node {
-              id
-              displayCode
-              initialValue
-              balance
-              currencyCode
-              disabledAt
-              createdAt
-              expiresOn
-              customer {
-                id
-              }
-            }
-          }
-        }
-      }
-    `;
-
-    const response = await axios.post(
-      url,
-      { query },
-      {
-        headers: {
-          'X-Shopify-Access-Token': shopifyConfig.accessToken,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    if (response.data.errors) {
-      console.error('GraphQL errors:', response.data.errors);
-      return res.status(500).json({ error: 'Error fetching gift cards' });
-    }
-
-    const allGiftCards = response.data.data.giftCards.edges.map(edge => edge.node);
-
-    // 过滤属于当前客户的礼品卡
-    const customerGid = `gid://shopify/Customer/${customer_id}`;
-    const giftCards = allGiftCards.filter(card => card.customer && card.customer.id === customerGid);
+    const giftCards = response.data.gift_cards;
 
     res.status(200).json(giftCards);
   } catch (error) {
     console.error('Error fetching gift cards:', error.message);
+    // 打印完整的错误信息
     console.error(error);
 
-    res.status(500).send('Server error');
+    res.status(500).send('服务器错误');
   }
 }
