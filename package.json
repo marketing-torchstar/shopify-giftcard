@@ -1,17 +1,15 @@
 {
   "name": "shopify-giftcard",
   "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
+  "main": "giftcards.js",
+"scripts": {
+  "build": "vercel build"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "axios": "^1.7.7",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.1"
+    "axios": "^1.7.7"
   }
 }
