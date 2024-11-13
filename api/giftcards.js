@@ -21,8 +21,8 @@ export default async function handler(req, res) {
     const url = `https://${shopifyConfig.shopName}.myshopify.com/admin/api/2023-10/graphql.json`;
 
     const query = `
-      query ($customerId: ID!) {
-        giftCards(first: 10, query: "customer_id:$customerId") {
+      {
+        giftCards(first: 100) {
           edges {
             node {
               id
@@ -33,19 +33,18 @@ export default async function handler(req, res) {
               disabledAt
               createdAt
               expiresOn
+              customer {
+                id
+              }
             }
           }
         }
       }
     `;
 
-    const variables = {
-      customerId: `gid://shopify/Customer/${customer_id}`,
-    };
-
     const response = await axios.post(
       url,
-      { query, variables },
+      { query },
       {
         headers: {
           'X-Shopify-Access-Token': shopifyConfig.accessToken,
@@ -54,13 +53,16 @@ export default async function handler(req, res) {
       }
     );
 
-    // 检查是否有错误
     if (response.data.errors) {
       console.error('GraphQL errors:', response.data.errors);
       return res.status(500).json({ error: 'Error fetching gift cards' });
     }
 
-    const giftCards = response.data.data.giftCards.edges.map(edge => edge.node);
+    const allGiftCards = response.data.data.giftCards.edges.map(edge => edge.node);
+
+    // 过滤属于当前客户的礼品卡
+    const customerGid = `gid://shopify/Customer/${customer_id}`;
+    const giftCards = allGiftCards.filter(card => card.customer && card.customer.id === customerGid);
 
     res.status(200).json(giftCards);
   } catch (error) {
