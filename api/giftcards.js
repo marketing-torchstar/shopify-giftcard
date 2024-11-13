@@ -3,7 +3,7 @@
 import axios from 'axios';
 
 const shopifyConfig = {
-  accessToken: process.env.SHOPIFY_ACCESS_TOKEN, // 使用新的环境变量名称
+  accessToken: process.env.SHOPIFY_ACCESS_TOKEN,
   shopName: process.env.SHOPIFY_SHOP_NAME,
 };
 
@@ -13,9 +13,14 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET');
 
   try {
-    const url = `https://${shopifyConfig.shopName}.myshopify.com/admin/api/2023-10/gift_cards.json`;
+    const { customer_id } = req.query;
 
-    // 设置请求头，包含访问令牌
+    if (!customer_id) {
+      return res.status(400).json({ error: 'Missing customer_id parameter' });
+    }
+
+    const url = `https://${shopifyConfig.shopName}.myshopify.com/admin/api/2023-10/gift_cards.json?customer_id=${customer_id}`;
+
     const response = await axios.get(url, {
       headers: {
         'X-Shopify-Access-Token': shopifyConfig.accessToken,
@@ -25,12 +30,26 @@ export default async function handler(req, res) {
 
     const giftCards = response.data.gift_cards;
 
-    res.status(200).json(giftCards);
+    // 获取每个礼品卡的详细信息，包括完整的礼品卡代码
+    const detailedGiftCards = await Promise.all(
+      giftCards.map(async (card) => {
+        const cardUrl = `https://${shopifyConfig.shopName}.myshopify.com/admin/api/2023-10/gift_cards/${card.id}.json`;
+        const cardResponse = await axios.get(cardUrl, {
+          headers: {
+            'X-Shopify-Access-Token': shopifyConfig.accessToken,
+            'Content-Type': 'application/json',
+          },
+        });
+        return cardResponse.data.gift_card;
+      })
+    );
+
+    res.status(200).json(detailedGiftCards);
   } catch (error) {
     console.error('Error fetching gift cards:', error.message);
     // 打印完整的错误信息
     console.error(error);
 
-    res.status(500).send('服务器错误');
+    res.status(500).send('Server error');
   }
 }
