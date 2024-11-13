@@ -2,10 +2,8 @@
 
 import axios from 'axios';
 
-// Shopify API 凭证
 const shopifyConfig = {
-  apiKey: process.env.SHOPIFY_API_KEY,
-  password: process.env.SHOPIFY_PASSWORD,
+  accessToken: process.env.SHOPIFY_ACCESS_TOKEN, // 使用新的环境变量名称
   shopName: process.env.SHOPIFY_SHOP_NAME,
 };
 
@@ -15,14 +13,24 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET');
 
   try {
-    const url = `https://${shopifyConfig.apiKey}:${shopifyConfig.password}@${shopifyConfig.shopName}.myshopify.com/admin/api/2023-10/gift_cards.json`;
+    const url = `https://${shopifyConfig.shopName}.myshopify.com/admin/api/2023-10/gift_cards.json`;
 
-    const response = await axios.get(url);
+    // 设置请求头，包含访问令牌
+    const response = await axios.get(url, {
+      headers: {
+        'X-Shopify-Access-Token': shopifyConfig.accessToken,
+        'Content-Type': 'application/json',
+      },
+    });
+
     const giftCards = response.data.gift_cards;
 
     res.status(200).json(giftCards);
   } catch (error) {
+    console.error('Error fetching gift cards:', error.message);
+    // 打印完整的错误信息
     console.error(error);
+
     res.status(500).send('服务器错误');
   }
 }
