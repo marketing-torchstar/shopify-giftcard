@@ -1,14 +1,11 @@
 {
   "name": "shopify-giftcard",
   "version": "1.0.0",
-  "main": "giftcards.js",
-"scripts": {
-  "build": "vercel build"
-},
+  "type": "module",
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "A serverless function to fetch Shopify gift card information",
   "dependencies": {
     "axios": "^1.7.7"
   }
