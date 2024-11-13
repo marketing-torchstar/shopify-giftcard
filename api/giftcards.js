@@ -8,46 +8,49 @@ const shopifyConfig = {
 };
 
 export default async function handler(req, res) {
-  // 设置 CORS 头，允许跨域请求
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
 
   try {
-    const { customer_id } = req.query;
+    const { customer_email } = req.query;
 
-    if (!customer_id) {
-      return res.status(400).json({ error: 'Missing customer_id parameter' });
+    if (!customer_email) {
+      return res.status(400).json({ error: 'Missing customer_email parameter' });
     }
 
-    const url = `https://${shopifyConfig.shopName}.myshopify.com/admin/api/2023-10/gift_cards.json?customer_id=${customer_id}`;
+    const url = `https://${shopifyConfig.shopName}.myshopify.com/admin/api/2023-10/graphql.json`;
 
-    const response = await axios.get(url, {
+    const query = `
+      {
+        giftCards(first: 10, query: "customer_email:${customer_email}") {
+          edges {
+            node {
+              id
+              displayCode
+              initialValue
+              balance
+              currencyCode
+              disabledAt
+              createdAt
+              expiresOn
+            }
+          }
+        }
+      }
+    `;
+
+    const response = await axios.post(url, { query }, {
       headers: {
         'X-Shopify-Access-Token': shopifyConfig.accessToken,
         'Content-Type': 'application/json',
       },
     });
 
-    const giftCards = response.data.gift_cards;
+    const giftCards = response.data.data.giftCards.edges.map(edge => edge.node);
 
-    // 获取每个礼品卡的详细信息，包括完整的礼品卡代码
-    const detailedGiftCards = await Promise.all(
-      giftCards.map(async (card) => {
-        const cardUrl = `https://${shopifyConfig.shopName}.myshopify.com/admin/api/2023-10/gift_cards/${card.id}.json`;
-        const cardResponse = await axios.get(cardUrl, {
-          headers: {
-            'X-Shopify-Access-Token': shopifyConfig.accessToken,
-            'Content-Type': 'application/json',
-          },
-        });
-        return cardResponse.data.gift_card;
-      })
-    );
-
-    res.status(200).json(detailedGiftCards);
+    res.status(200).json(giftCards);
   } catch (error) {
     console.error('Error fetching gift cards:', error.message);
-    // 打印完整的错误信息
     console.error(error);
 
     res.status(500).send('Server error');
