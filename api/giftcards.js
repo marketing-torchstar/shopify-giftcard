@@ -3,7 +3,7 @@
 import axios from 'axios';
 
 const shopifyConfig = {
-  accessToken: process.env.SHOPIFY_PASSWORD, // 使用访问令牌进行认证
+  accessToken: process.env.SHOPIFY_ACCESS_TOKEN, // 使用新的环境变量名称
   shopName: process.env.SHOPIFY_SHOP_NAME,
 };
 
